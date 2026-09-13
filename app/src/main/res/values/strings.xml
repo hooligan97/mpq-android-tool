@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">MPQ Android Tool</string>
+    <string name="read_mpq">Read MPQ</string>
+    <string name="extract_files">Extract Files</string>
+    <string name="edit_modify">Edit/Modify</string>
+    <string name="search">Search</string>
+    <string name="no_mpq_files">No MPQ files found</string>
+    <string name="loading">Loading...</string>
+    <string name="error">Error</string>
+</resources>
