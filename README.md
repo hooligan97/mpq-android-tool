@@ -75,6 +75,28 @@ cd mpq-android-tool
 ./gradlew assembleDebug -PNDK_ARCHITECTURES=armeabi-v7a
 ```
 
+## Features Details
+
+### 📖 Read MPQ Contents
+- List all files in MPQ archive
+- View file metadata (size, offset, hash)
+- Display directory structure
+
+### 📤 Extract Files
+- Extract single files
+- Extract all files with structure
+- Extract to storage
+
+### ✏️ Edit/Modify
+- Modify file attributes
+- Repackage MPQ archives
+- Hash recalculation
+
+### 🔍 Search
+- Full-text search
+- Filename pattern matching
+- File type filtering
+
 ## Dependencies
 
 - StormLib - MPQ file format handling

@@ -1,0 +1,15 @@
+# Auto detect text files and normalize line endings to LF
+* text=auto
+
+# C++ files
+*.cpp text
+*.h text
+*.hpp text
+*.c text
+
+# Gradle files
+*.gradle text
+*.properties text
+
+# Documentation
+*.md text
