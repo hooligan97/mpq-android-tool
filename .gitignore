@@ -1,0 +1,36 @@
+# Gradle
+.gradle
+build/
+*.apk
+*.aar
+*.aab
+
+# Android Studio
+.idea/
+*.iml
+*.iws
+*.ipr
+.DS_Store
+
+# Local properties
+local.properties
+
+# Build outputs
+outputs/
+
+# CMake
+.cmake/
+CMakeFiles/
+*.cmake
+
+# JNI
+*.o
+*.so
+
+# Archives
+*.zip
+*.tar.gz
+
+# IDE
+.vscode/
+.clion/
