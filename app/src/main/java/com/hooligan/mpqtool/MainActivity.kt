@@ -11,10 +11,10 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
 
         val textView: TextView = findViewById(R.id.sample_text)
-        textView.text = stringFromJNI()
+        textView.text = "StormLib Native Engine Ready"
     }
 
-    external fun stringFromJNI(): String
+    external fun extractMpqFile(mpqPath: String, fileName: String, outputPath: String): Boolean
 
     companion object {
         init {
