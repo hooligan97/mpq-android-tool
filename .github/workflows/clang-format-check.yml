@@ -1,0 +1,44 @@
+name: clang-format check
+
+on:
+  push:
+    branches:
+      - master
+      - main
+    paths-ignore:
+      - '*.md'
+      - 'docs/**'
+  pull_request:
+    types: [ opened, synchronize ]
+    paths-ignore:
+      - '*.md'
+      - 'docs/**'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  formatting-check:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Formatting Check (src)
+      uses: jidicula/clang-format-action@v4.18.0
+      with:
+        clang-format-version: '18'
+        check-path: 'src'
+
+    - name: Formatting Check (include)
+      uses: jidicula/clang-format-action@v4.18.0
+      with:
+        clang-format-version: '18'
+        check-path: 'include'
+
+    - name: Formatting Check (tests)
+      uses: jidicula/clang-format-action@v4.18.0
+      with:
+        clang-format-version: '18'
+        check-path: 'tests'

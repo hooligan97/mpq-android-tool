@@ -1,0 +1,100 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+jobs:
+  build-and-test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        compiler: [gcc, clang]
+        build_type: [Debug, Release]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y zlib1g-dev libbz2-dev
+
+      - name: Set compiler
+        run: |
+          if [ "${{ matrix.compiler }}" = "gcc" ]; then
+            echo "CC=gcc" >> "$GITHUB_ENV"
+          else
+            echo "CC=clang" >> "$GITHUB_ENV"
+          fi
+
+      - name: Configure
+        run: cmake -B build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+
+      - name: Build
+        run: cmake --build build -j$(nproc)
+
+      - name: Unit tests
+        run: ./build/mpqfs_test
+
+      - name: Download test assets
+        run: |
+          wget -qnc https://github.com/diasurgical/devilutionx-assets/releases/download/v2/spawn.mpq -P build
+          wget -qnc https://github.com/diasurgical/devilutionx-assets/releases/download/v5/devilutionx.mpq -P build
+
+      - name: "Integration: spawn.mpq opens"
+        run: ./build/mpqfs_test build/spawn.mpq 2>&1 | grep -q "Archive opened successfully"
+
+      - name: "Integration: spawn.mpq extract PCX (zlib)"
+        run: |
+          ./build/mpqfs_test build/spawn.mpq 'ui_art\title.pcx' > build/title.pcx
+          EXPECTED=80648
+          ACTUAL=$(stat -c%s build/title.pcx)
+          echo "Extracted title.pcx: $ACTUAL bytes (expected $EXPECTED)"
+          if [ "$ACTUAL" -ne "$EXPECTED" ]; then
+            echo "::error::Size mismatch: got $ACTUAL, expected $EXPECTED"
+            exit 1
+          fi
+          MAGIC=$(xxd -l1 -p build/title.pcx)
+          if [ "$MAGIC" != "0a" ]; then
+            echo "::error::Bad PCX magic: got 0x$MAGIC, expected 0x0a"
+            exit 1
+          fi
+
+      - name: "Integration: devilutionx.mpq encrypted listfile"
+        run: |
+          ./build/mpqfs_test build/devilutionx.mpq '(listfile)' > build/dvx_listfile.txt
+          COUNT=$(wc -l < build/dvx_listfile.txt)
+          echo "Listfile contains $COUNT entries"
+          if [ "$COUNT" -lt 100 ]; then
+            echo "::error::Listfile too short ($COUNT lines), expected 200+"
+            exit 1
+          fi
+
+      - name: "Integration: devilutionx.mpq extract all files (bzip2 + encryption)"
+        run: |
+          python3 -c "
+          import subprocess, sys
+          fails = 0
+          total = 0
+          for line in open('build/dvx_listfile.txt', 'r'):
+              fname = line.strip()
+              if not fname:
+                  continue
+              total += 1
+              r = subprocess.run(
+                  ['./build/mpqfs_test', 'build/devilutionx.mpq', fname],
+                  capture_output=True, timeout=10)
+              if r.returncode != 0:
+                  fails += 1
+                  err = r.stderr.decode().strip().split('\n')
+                  errline = [l for l in err if 'Error' in l or 'error' in l]
+                  print(f'FAIL: {fname}')
+                  if errline:
+                      print(f'      {errline[0].strip()}')
+          print(f'Total: {total}  Passed: {total - fails}  Failed: {fails}')
+          if fails:
+              sys.exit(1)
+          "

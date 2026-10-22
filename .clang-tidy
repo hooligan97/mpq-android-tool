@@ -1,0 +1,105 @@
+---
+# clang-tidy configuration for mpqfs
+#
+# mpqfs is a plain-C library that follows snake_case naming throughout.
+# This configuration is derived from DevilutionX's .clang-tidy but
+# adapted for C (not C++) conventions.
+#
+# clang-tidy can be run manually like this:
+#
+#     run-clang-tidy -p build 'src/.*|include/.*|tests/.*'
+#
+# To apply fixes suggested by clang-tidy, run:
+#
+#     run-clang-tidy -p build -fix -format 'src/.*|include/.*|tests/.*'
+#
+# To limit the run to certain checks:
+#
+#     run-clang-tidy -checks='-*,bugprone-suspicious-memset-usage' -p build 'src/.*'
+
+# Enable most checks relevant to a C codebase.
+#
+# Built-in checks:
+# https://clang.llvm.org/extra/clang-tidy/checks/list.html
+#
+# Exclusions:
+#
+# -readability-identifier-naming
+#   The library uses snake_case consistently. The check cannot be
+#   configured to accept snake_case for *all* identifier kinds in C
+#   without also dragging in struct tags, typedefs, macros, etc.
+#   Enforcing naming via clang-tidy adds more noise than value here.
+#
+# -readability-function-cognitive-complexity
+#   Several functions (PKWare codec, stream loader, test helpers) are
+#   inherently complex. Splitting them further would hurt readability.
+#
+# -readability-isolate-declaration
+#   Test assertion macros legitimately expand to multi-declarations.
+#   The library code itself is already clean.
+#
+# -readability-uppercase-literal-suffix
+#   We use lowercase 'u' suffixes (e.g. 0x100u) throughout for
+#   consistency with the MPQ format documentation.
+#
+# -bugprone-easily-swappable-parameters
+#   Too noisy for a library that passes many uint32_t parameters.
+#
+# -bugprone-reserved-identifier
+#   We intentionally define _POSIX_C_SOURCE before system headers.
+#
+# -bugprone-implicit-widening-of-multiplication-result
+#   Flagged casts are intentional (uint32_t -> size_t on 64-bit).
+#
+# -readability-magic-numbers
+#   MPQ format constants are used directly — extracting them all to
+#   named constants would hurt readability rather than help it.
+#
+# -misc-include-cleaner
+#   Headers that aren't directly compiled (e.g. internal .h files
+#   included only from .c files) produce false positives.
+#
+# -misc-no-recursion
+#   Not applicable — we have no recursion, but the check fires on
+#   false positives in some configurations.
+#
+# -modernize-*
+#   This is a C project; modernize checks target C++ features.
+#
+# -cppcoreguidelines-pro-type-cstyle-cast
+#   This is C — all casts are C-style casts.
+#
+# -google-runtime-int
+#   We use uint32_t/size_t throughout, not short/long, but this
+#   check wants std::uint32_t which doesn't exist in C.
+#
+# -performance-no-int-to-ptr
+#   False positives with sentinel values.
+Checks: >
+  -*,
+  bugprone-*,
+  -bugprone-easily-swappable-parameters,
+  -bugprone-reserved-identifier,
+  -bugprone-implicit-widening-of-multiplication-result,
+  llvm-include-order,
+  misc-*,
+  -misc-include-cleaner,
+  -misc-no-recursion,
+  performance-*,
+  -performance-no-int-to-ptr,
+  portability-*,
+  readability-*,
+  -readability-identifier-naming,
+  -readability-identifier-length,
+  -readability-function-cognitive-complexity,
+  -readability-isolate-declaration,
+  -readability-magic-numbers,
+  -readability-uppercase-literal-suffix,
+  -readability-math-missing-parentheses
+
+HeaderFilterRegex: "^(src|include|tests)/.*\\.h$"
+
+CheckOptions:
+  # Allow short if-statements without braces
+  - { key: readability-braces-around-statements.ShortStatementLines, value: 3 }
+

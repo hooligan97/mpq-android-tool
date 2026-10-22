@@ -1,0 +1,45 @@
+name: clang-tidy check
+
+on:
+  push:
+    branches:
+      - master
+      - main
+    paths: ['**.c', '**.cpp', '**.h', '**.hpp', '**CMakeLists.txt', '**.cmake', '.clang-tidy', '.github/workflows/clang-tidy-check.yml']
+  pull_request:
+    types: [ opened, synchronize ]
+    paths: ['**.c', '**.cpp', '**.h', '**.hpp', '**CMakeLists.txt', '**.cmake', '.clang-tidy', '.github/workflows/clang-tidy-check.yml']
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tidy-check:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update -y
+        sudo apt-get install -y cmake zlib1g-dev libbz2-dev
+
+    - name: CMake Configure
+      run: cmake -S . -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+
+    - name: clang-tidy Check
+      uses: cpp-linter/cpp-linter-action@v2
+      id: linter
+      with:
+        database: build
+        version: '18'
+        style: ''
+        tidy-checks: ''
+
+    - name: Fail on clang-tidy warnings
+      if: steps.linter.outputs.checks-failed > 0
+      run: exit 1
