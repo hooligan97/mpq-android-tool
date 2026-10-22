@@ -45,3 +45,4 @@ CTestTestfile.cmake
 # Package files
 *.tar.gz
 *.zip
+/build/
