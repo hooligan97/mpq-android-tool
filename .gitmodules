@@ -1,0 +1,3 @@
+[submodule "app/src/main/cpp/StormLib"]
+	path = app/src/main/cpp/StormLib
+	url = https://github.com/ladislav-zezula/StormLib.git

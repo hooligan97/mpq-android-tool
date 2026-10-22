@@ -1,266 +1,435 @@
-# mpqfs
+# MPQ Android Tool
 
-A minimal, MIT-licensed C99 library for reading and writing MPQ v1 archives (as used by Diablo 1).
+Android application for reading, extracting, editing, and searching MPQ files with support for multiple ARM architectures.
 
-**mpqfs** provides a clean streaming interface to files inside MPQ archives, designed to slot directly into game engines. It also supports creating MPQ archives in the style used by Diablo 1 for its save-game files.
+## ✨ Features
 
-## Features
+- 📖 **Read MPQ Contents** - Browse and view MPQ archive structure
+- 📤 **Extract Files** - Extract individual files from MPQ archives
+- ✏️ **Edit/Modify** - Edit and modify files within MPQ archives
+- 🔎 **Search** - Search for files and content within MPQ archives
+- 🏗️ **Multi-Architecture** - Support for armeabi-v7a, armeabi, and x86
+- 💾 **Persistent Storage** - Save changes back to MPQ archives
 
-- **MPQ v1 format** support (Diablo 1 `DIABDAT.MPQ`)
-- **PKWARE DCL** (implode) decompression and compression — the scheme used by Diablo 1
-- **zlib and bzip2** decompression — for MPQ archives that use multi-method compression (e.g. Warcraft III), optionally compiled in
-- **MPQ v1 writing** — create archives compatible with Diablo 1's save-game format
-- **Zero-copy sector-based streaming** (files are not fully decompressed up front)
-- **Archive cloning** for thread-safe concurrent reads
-- **Carry-forward** — copy files between archives without recompression
-- **Written in C99**, compiles cleanly as **C++11 through C++20**
-- **MIT licensed** — suitable for embedding in any engine
+## 🎯 Supported Architectures
 
-## Building
+- **armeabi-v7a** (32-bit ARM v7) - Most common, with NEON SIMD optimization
+- **armeabi** (Legacy 32-bit ARM) - Older devices support
+- **x86** (32-bit Intel) - Emulator and tablet support
 
-mpqfs uses CMake (>= 3.14):
+## 🏗️ Project Structure
 
-```sh
-cmake -S . -B build
-cmake --build build
+```
+mpq-android-tool/
+├── app/                          # Android application module
+│   ├── src/main/
+│   │   ├── java/                 # Java/Kotlin source code
+│   │   │   └── com/mpq/android/tool/
+│   │   │       └── MainActivity.kt
+│   │   ├── cpp/                  # Native C++ code
+│   │   ├── AndroidManifest.xml
+│   │   └── res/                  # Resources
+│   │       ├── layout/
+│   │       ├── values/
+│   │       └── drawable/
+│   └── build.gradle
+│
+├── mpq-lib/                       # Native MPQ library
+│   ├── src/main/cpp/
+│   │   ├── CMakeLists.txt
+│   │   ├── include/               # Header files
+│   │   │   ├── mpq_reader.h
+│   │   │   ├── mpq_writer.h
+│   │   │   └── mpq_search.h
+│   │   ├── mpq-core/              # Core MPQ handling
+│   │   │   ├── mpq_reader.cpp
+│   │   │   ├── mpq_writer.cpp
+│   │   │   ├── mpq_search.cpp
+│   │   │   └── mpq_parser.cpp
+│   │   └── jni/                   # JNI bindings
+│   │       └── mpq_jni.cpp
+│   └── build.gradle
+│
+├── docs/                          # Documentation
+│   ├── ARCHITECTURE.md
+│   ├── BUILD.md
+│   ├── CONTRIBUTING.md
+│   └── API.md
+│
+├── build.gradle
+├── CMakeLists.txt
+├── settings.gradle
+├── .gitignore
+├── .gitattributes
+└── README.md
 ```
 
-### CMake options
+## 📋 Technology Stack
 
-| Option               | Default | Description                                                |
-|----------------------|---------|------------------------------------------------------------|
-| `BUILD_TESTING`      | `ON`    | Build the test executable                                  |
-| `BUILD_SHARED_LIBS`  | `OFF`   | Build as shared library instead of static                  |
-| `MPQFS_USE_ZLIB`     | `ON`    | Enable zlib decompression for `MPQ_FILE_COMPRESS` sectors  |
-| `MPQFS_USE_BZIP2`    | `ON`    | Enable bzip2 decompression for `MPQ_FILE_COMPRESS` sectors |
+- **Frontend**: Kotlin/Java with AndroidX
+- **Backend**: C++ (Native library via JNI)
+- **Build System**: CMake + Gradle
+- **NDK**: Android NDK r21+
+- **Minimum SDK**: Android 5.0 (API 21)
+- **Target SDK**: Android 13 (API 33)
+- **Database**: Optional SQLite for metadata
 
-PKWARE DCL (implode/explode) is always built in — it has no external dependencies. zlib and bzip2 are only needed for MPQ archives that use the multi-method compression flag, which is common in Warcraft III but not in Diablo 1. On platforms where these libraries are unavailable, set `MPQFS_USE_ZLIB=OFF` and/or `MPQFS_USE_BZIP2=OFF`.
+## 🚀 Quick Start
 
-### Using mpqfs in your CMake project
+### Prerequisites
 
-#### As a subdirectory
+- Android Studio 4.0+
+- Android NDK r21+
+- CMake 3.10+
+- Gradle 6.7+
+- Java 11+
 
-```cmake
-add_subdirectory(vendor/mpqfs)
-target_link_libraries(my_game PRIVATE mpqfs::mpqfs)
+### Installation
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/hooligan97/mpq-android-tool.git
+   cd mpq-android-tool
+   ```
+
+2. **Build the project**
+   ```bash
+   ./gradlew assembleDebug
+   ```
+
+3. **Install on device**
+   ```bash
+   ./gradlew installDebug
+   ```
+
+4. **Run the application**
+   ```bash
+   adb shell am start -n com.mpq.android.tool/.MainActivity
+   ```
+
+## 🔨 Building
+
+### Build All Architectures
+
+```bash
+./gradlew assembleDebug
 ```
 
-#### Via FetchContent
+### Build Specific Architecture
 
-```cmake
-include(FetchContent)
-FetchContent_Declare(mpqfs
-    GIT_REPOSITORY https://github.com/AJenbo/mpqfs.git
-    GIT_TAG        main
-)
-FetchContent_MakeAvailable(mpqfs)
+```bash
+# ARM v7a only
+./gradlew assembleDebug -PNDK_ARCHITECTURES=armeabi-v7a
 
-target_link_libraries(my_game PRIVATE mpqfs::mpqfs)
+# Legacy ARM only
+./gradlew assembleDebug -PNDK_ARCHITECTURES=armeabi
+
+# x86 only
+./gradlew assembleDebug -PNDK_ARCHITECTURES=x86
+
+# Multiple architectures
+./gradlew assembleDebug -PNDK_ARCHITECTURES=armeabi-v7a,x86
 ```
 
-#### Via find_package (after install)
+### Release Build
 
-```cmake
-find_package(mpqfs REQUIRED CONFIG)
-target_link_libraries(my_game PRIVATE mpqfs::mpqfs)
+```bash
+./gradlew assembleRelease
 ```
 
-## Quick start
+### Output Files
 
-### Reading an archive
+- **Debug APK**: `app/build/outputs/apk/debug/app-debug.apk`
+- **Release APK**: `app/build/outputs/apk/release/app-release.apk`
+- **Native Libraries**: `mpq-lib/build/intermediates/cmake/debug/obj/{abi}/`
 
-```c
-#include <mpqfs/mpqfs.h>
+## 📱 Usage
 
-mpqfs_archive_t *archive;
-mpqfs_error_code rc = mpqfs_open("DIABDAT.MPQ", &archive);
-if (rc != MPQFS_OK) {
-    fprintf(stderr, "failed to open archive: %s\n", mpqfs_error_message(rc));
-    return 1;
-}
+### Opening an MPQ File
 
-/* Check if a file exists */
-if (mpqfs_has_file(archive, "levels\\l1data\\l1.min")) {
-    printf("found it!\n");
-}
+1. Launch the application
+2. Navigate to file browser
+3. Select an MPQ archive
+4. View file contents and metadata
 
-/* Read a whole file into memory */
-void *data;
-size_t size;
-if (mpqfs_read_file(archive, "ui_art\\title.pcx", &data, &size) == MPQFS_OK) {
-    /* use data (size bytes) ... */
-    free(data);
-}
+### Extracting Files
 
-mpqfs_close(archive);
+1. Open an MPQ archive
+2. Select files to extract
+3. Choose destination folder
+4. Click "Extract"
+
+### Searching Files
+
+1. Open an MPQ archive
+2. Click "Search"
+3. Enter search pattern or filename
+4. View results
+
+### Editing Files
+
+1. Open an MPQ archive
+2. Select a file
+3. Click "Edit"
+4. Make changes
+5. Save and repackage
+
+## 🏛️ Architecture
+
+### MVVM Pattern
+
+```
+UI Layer (Activities, Fragments)
+    ↓
+ViewModel (Business Logic)
+    ↓
+Repository (Data Access)
+    ↓
+Native Library (C++ JNI)
+    ↓
+File System / MPQ Archives
 ```
 
-### Writing an archive
+### Native C++ Components
 
-```c
-#include <mpqfs/mpqfs.h>
+#### MPQReader
+- Opens and validates MPQ files
+- Parses header and file tables
+- Extracts file data
+- Handles decompression
 
-mpqfs_writer_t *writer;
-mpqfs_error_code rc = mpqfs_writer_create("save.sv", 16, &writer);
-if (rc != MPQFS_OK) {
-    fprintf(stderr, "failed to create archive: %s\n", mpqfs_error_message(rc));
-    return 1;
-}
+#### MPQWriter
+- Creates new MPQ archives
+- Adds/removes files
+- Repackages archives
+- Recalculates hashes
 
-mpqfs_writer_add_file(writer, "hero", hero_data, hero_size);
-mpqfs_writer_add_file(writer, "game", game_data, game_size);
+#### MPQSearch
+- Pattern-based search
+- Regex support
+- File filtering
+- Relevance scoring
 
-rc = mpqfs_writer_close(writer);
-if (rc != MPQFS_OK) {
-    fprintf(stderr, "failed to write archive: %s\n", mpqfs_error_message(rc));
-    return 1;
-}
-/* writer is freed by close — do not use it after this point */
+## 📊 MPQ File Format
+
+### Header Structure (32 bytes)
+
+```
+Offset  Size  Field
+0       4     Magic ("MPQ\x1A")
+4       4     Header Size
+8       4     Archive Size
+12      2     Format Version
+14      2     Sector Size Shift
+16      4     Hash Table Offset
+20      4     Block Table Offset
+24      4     Hash Table Entries
+28      4     Block Table Entries
 ```
 
-### Streaming (large files)
+### File Entry Structure
 
-```c
-mpqfs_stream_t *stream;
-if (mpqfs_stream_open(archive, "sfx\\misc\\fire01.wav", &stream) != MPQFS_OK) {
-    /* handle error */
-}
-
-uint8_t buf[4096];
-size_t n;
-while (mpqfs_stream_read(stream, buf, sizeof(buf), &n) == MPQFS_OK && n > 0) {
-    /* process chunk ... */
-}
-
-mpqfs_stream_close(stream);
+```cpp
+struct FileEntry {
+    std::string filename;
+    uint32_t fileSize;
+    uint32_t compressedSize;
+    uint32_t offset;
+    bool isFile;
+    uint32_t flags;
+};
 ```
 
-## Platform support
+## 🔄 Data Flow
 
-mpqfs is designed for extreme portability:
-
-| Platform        | Toolchain          | Notes                                          |
-|-----------------|--------------------|-------------------------------------------------|
-| Linux           | GCC / Clang        | Primary development platform                    |
-| Windows         | MSVC / MinGW       | Full support including `_fdopen`                |
-| macOS / iOS     | Apple Clang        |                                                 |
-| Android         | NDK (Clang)        |                                                 |
-| DOS             | DJGPP (GCC)        | No threads — TLS degrades to static             |
-| Xbox (nxdk)     | nxdk               | No POSIX fd, no zlib/bzip2 by default           |
-| Xbox UWP        | MSVC               | No POSIX fd                                     |
-| PS2             | ee-gcc             | No threads, no POSIX fd                         |
-| 3DS / Vita      | devkitARM / vitasdk| No POSIX fd                                     |
-| Nintendo Switch | devkitA64          | No POSIX fd                                     |
-| Emscripten      | emcc               |                                                 |
-
-On platforms without POSIX file descriptors, use `mpqfs_open_fp(FILE*)` or `mpqfs_open(path)` instead of `mpqfs_open_fd(int fd)`. The same applies to the writer variants.
-
-Key portability properties:
-
-- **C99 baseline** — no C11 or C++ features required.
-- **C++ safe** — `extern "C"` guards on all headers; compiles as C++20 with zero warnings under `-Wall -Wextra -Wpedantic`.
-- **Endian safe** — all on-disk data is parsed via byte-level reads.
-- **Alignment safe** — no unaligned memory access.
-- **No TLS requirement** — degrades to a plain `static` on single-threaded platforms.
-
-## API reference
-
-The public API is defined in a single header: `<mpqfs/mpqfs.h>`. See the header for full doc-comments on every function.
-
-Every fallible function returns an `mpqfs_error_code` (`MPQFS_OK` on success); the value it used to return directly is now written through a trailing out-parameter. Existence-style queries (`mpqfs_has_file`, `mpqfs_has_file_hash`, `mpqfs_writer_has_file`, `mpqfs_find_hash`) are unaffected — they still return their result directly, since "not found" isn't an error.
-
-### Archive lifecycle
-
-| Function | Description |
-|----------|-------------|
-| `mpqfs_open(path, &archive)` | Open from a filesystem path. |
-| `mpqfs_open_fp(fp, &archive)` | Open from a `FILE*` (caller retains ownership). |
-| `mpqfs_open_fd(fd, &archive)` | Open from a file descriptor (library takes ownership). Only on platforms with `fdopen`. |
-| `mpqfs_clone(archive, &clone)` | Create an independent clone with its own `FILE*` for thread-safe concurrent reads. |
-| `mpqfs_close(archive)` | Close and free all resources. NULL-safe. |
-
-### File queries
-
-| Function | Description |
-|----------|-------------|
-| `mpqfs_has_file(archive, filename)` | Check if a file exists. Returns `bool` directly. |
-| `mpqfs_file_size(archive, filename, &size)` | Get uncompressed size. |
-| `mpqfs_find_hash(archive, filename)` | Look up a file and return its hash table index (`UINT32_MAX` if not found). Returns `uint32_t` directly. |
-| `mpqfs_has_file_hash(archive, hash)` | Check existence by hash table index. Returns `bool` directly. |
-| `mpqfs_file_size_from_hash(archive, hash, &size)` | Get size by hash table index. |
-
-### Reading files
-
-| Function | Description |
-|----------|-------------|
-| `mpqfs_read_file(archive, filename, &data, &size)` | Read entire file into a `malloc`'d buffer. Caller must `free()`. |
-| `mpqfs_read_file_into(archive, filename, buf, buf_size, &bytes_read)` | Read entire file into a caller-supplied buffer. |
-
-### Streaming
-
-| Function | Description |
-|----------|-------------|
-| `mpqfs_stream_open(archive, filename, &stream)` | Open a seekable read-only stream. Only one sector is held in memory. |
-| `mpqfs_stream_open_from_hash(archive, hash, &stream)` | Open a stream by hash table index (avoids rehashing). |
-| `mpqfs_stream_read(stream, buf, count, &bytes_read)` | Read up to `count` bytes. |
-| `mpqfs_stream_seek(stream, offset, whence, &position)` | Seek (`SEEK_SET` / `SEEK_CUR` / `SEEK_END`). |
-| `mpqfs_stream_tell(stream, &position)` | Current read position. |
-| `mpqfs_stream_size(stream, &size)` | Total uncompressed size. |
-| `mpqfs_stream_close(stream)` | Close stream. NULL-safe. Does not close the archive. |
-
-### Writing archives
-
-| Function | Description |
-|----------|-------------|
-| `mpqfs_writer_create(path, hash_table_size, &writer)` | Create a writer targeting a filesystem path. |
-| `mpqfs_writer_create_fp(fp, hash_table_size, &writer)` | Create from a `FILE*` (caller retains ownership). |
-| `mpqfs_writer_create_fd(fd, hash_table_size, &writer)` | Create from a file descriptor. Only on platforms with `fdopen`. |
-| `mpqfs_writer_add_file(writer, filename, data, size)` | Add a file (data is copied). Compressed with PKWARE DCL implode. |
-| `mpqfs_writer_has_file(writer, filename)` | Check if a file has been added. Returns `bool` directly. |
-| `mpqfs_writer_rename_file(writer, old, new)` | Rename a previously added file. |
-| `mpqfs_writer_remove_file(writer, filename)` | Remove a previously added file. |
-| `mpqfs_writer_carry_forward(writer, filename, archive, block_index)` | Copy a file from an existing archive without recompression. |
-| `mpqfs_writer_carry_forward_all(writer, archive)` | Copy all files from an existing archive without recompression. |
-| `mpqfs_writer_close(writer)` | Finalise and free the writer. The handle is invalid after this call. |
-| `mpqfs_writer_discard(writer)` | Discard without writing. NULL-safe. |
-
-`hash_table_size` is rounded up to the next power of two (minimum 4) and must be larger than the number of files to add.
-
-### Crypto and compression primitives
-
-These are exposed for consumers that need low-level MPQ operations:
-
-| Function | Description |
-|----------|-------------|
-| `mpqfs_crypto_init()` | Initialise the encryption table. Called automatically; provided for explicit control. |
-| `mpqfs_hash_string(str, hash_type)` | Compute an MPQ hash. Types: `MPQFS_HASH_TABLE_INDEX`, `_NAME_A`, `_NAME_B`, `_FILE_KEY`. |
-| `mpqfs_hash_string_s(str, len, hash_type)` | Length-delimited variant. |
-| `mpqfs_encrypt_block(data, count, key)` | Encrypt uint32 array in-place. |
-| `mpqfs_decrypt_block(data, count, key)` | Decrypt uint32 array in-place. |
-| `mpqfs_file_hash(filename, &index, &hash_a, &hash_b)` | Compute the three MPQ hashes for a filename. |
-| `mpqfs_file_hash_s(filename, len, &index, &hash_a, &hash_b)` | Length-delimited variant. |
-| `mpqfs_pk_implode(src, src_size, dst, &dst_size, dict_bits)` | PKWARE DCL compress. |
-| `mpqfs_pk_explode(src, src_size, dst, &dst_size)` | PKWARE DCL decompress. |
-
-### Error handling
-
-Every fallible function returns an `mpqfs_error_code`. `MPQFS_OK` (0) means success; any other value is an error and no output parameter is valid. Use `mpqfs_error_message()` to get a static, human-readable description of a code — it does not carry call-specific detail (e.g. which filename or errno was involved), only the general category of failure.
-
-| Function | Description |
-|----------|-------------|
-| `mpqfs_error_message(code)` | Returns a static, human-readable description of an `mpqfs_error_code`. Never NULL. |
-
-Error codes: `MPQFS_OK`, `MPQFS_ERR_INVALID_ARGUMENT`, `MPQFS_ERR_OUT_OF_MEMORY`, `MPQFS_ERR_IO`, `MPQFS_ERR_NOT_MPQ`, `MPQFS_ERR_UNSUPPORTED_VERSION`, `MPQFS_ERR_CORRUPT_ARCHIVE`, `MPQFS_ERR_FILE_NOT_FOUND`, `MPQFS_ERR_INVALID_HASH`, `MPQFS_ERR_ENCRYPTED_NO_KEY`, `MPQFS_ERR_UNSUPPORTED_COMPRESSION`, `MPQFS_ERR_DECOMPRESS_FAILED`, `MPQFS_ERR_BUFFER_TOO_SMALL`, `MPQFS_ERR_HASH_TABLE_FULL`, `MPQFS_ERR_NO_PATH`.
-
-## Running tests
-
-```sh
-cmake --build build
-./build/mpqfs_test                           # run unit tests
-./build/mpqfs_test DIABDAT.MPQ               # open a real MPQ and print info
-./build/mpqfs_test DIABDAT.MPQ "file\\name"  # extract a file to stdout
+```
+User Action (File Selection)
+    ↓
+Android UI (Activity/Fragment)
+    ↓
+ViewModel (Handles Logic)
+    ↓
+Repository (Manages Data)
+    ↓
+JNI Bridge
+    ↓
+C++ Native Library
+    ↓
+File System / MPQ Archive
+    ↓
+Update UI with Results
 ```
 
-## License
+## 🧪 Testing
 
-MIT — see [LICENSE](LICENSE) for details.
+### Unit Tests
+
+```bash
+./gradlew testDebug
+```
+
+### Instrumented Tests
+
+```bash
+./gradlew connectedAndroidTest
+```
+
+### Native Tests (if configured)
+
+```bash
+./gradlew runCppUnit
+```
+
+## 📚 Documentation
+
+Detailed documentation is available in the `docs/` directory:
+
+- **[ARCHITECTURE.md](docs/ARCHITECTURE.md)** - System design and components
+- **[BUILD.md](docs/BUILD.md)** - Building and compilation guide
+- **[API.md](docs/API.md)** - API reference and examples
+- **[CONTRIBUTING.md](docs/CONTRIBUTING.md)** - Contributing guidelines
+
+## 🔒 Security
+
+- File permissions properly managed
+- Runtime permissions for Android 6.0+
+- Scoped Storage support for Android 11+
+- Safe buffer management in C++
+- Input validation on all operations
+
+## 🎨 User Interface
+
+### Material Design 3
+- Modern color scheme
+- Responsive layouts
+- Dark mode support
+- Accessibility features
+
+### Main Components
+- File Browser
+- Archive View
+- Search Interface
+- File Extraction Dialog
+- Settings Screen
+
+## ⚡ Performance Optimizations
+
+### Architecture-Specific
+- NEON SIMD on ARMv7a
+- Optimized decompression
+- Efficient memory management
+
+### General
+- Lazy loading of file tables
+- Streaming large files
+- Background processing with coroutines
+- Efficient caching
+
+## 🐛 Known Limitations
+
+- Maximum file size: 4GB (32-bit offsets)
+- Compression: Currently zlib only
+- Encryption: Not yet supported
+- Platform: Android 5.0+ only
+- Architectures: ARMv7a, ARMv5te, x86
+
+## 🚀 Future Roadmap
+
+- [ ] Support for bzip2 compression
+- [ ] File encryption/decryption
+- [ ] 64-bit archive support
+- [ ] Advanced search filters
+- [ ] File preview functionality
+- [ ] Batch processing
+- [ ] Cloud sync support
+- [ ] Multi-language support
+
+## 📦 Dependencies
+
+### Android Libraries
+- androidx.core:core-ktx
+- androidx.appcompat:appcompat
+- com.google.android.material:material
+- androidx.constraintlayout:constraintlayout
+- androidx.lifecycle:lifecycle-*
+- org.jetbrains.kotlinx:kotlinx-coroutines
+
+### Native Libraries
+- zlib (bundled with NDK)
+- StormLib (MPQ format)
+- bzip2 (optional)
+
+## 🤝 Contributing
+
+Contributions are welcome! Please see [CONTRIBUTING.md](docs/CONTRIBUTING.md) for guidelines.
+
+### How to Contribute
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit changes (`git commit -m 'Add amazing feature'`)
+4. Push to branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+### Code Style
+
+- Follow Google C++ Style Guide
+- Use Kotlin naming conventions
+- Write meaningful commit messages
+- Add tests for new features
+- Update documentation
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 👨‍💻 Author
+
+**Majers (hooligan97)**
+- GitHub: [@hooligan97](https://github.com/hooligan97)
+- Email: [GitHub Contact](https://github.com/hooligan97)
+
+## 🙏 Acknowledgments
+
+- StormLib library authors
+- Android Open Source Project
+- Material Design team
+- Community contributors
+
+## 📞 Support
+
+- **Issues**: [GitHub Issues](https://github.com/hooligan97/mpq-android-tool/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/hooligan97/mpq-android-tool/discussions)
+- **Wiki**: [GitHub Wiki](https://github.com/hooligan97/mpq-android-tool/wiki)
+
+## 🔗 Related Resources
+
+- [MPQ Format Specification](https://en.wikipedia.org/wiki/MPQ_(file_format))
+- [Android NDK Documentation](https://developer.android.com/ndk)
+- [StormLib Documentation](https://github.com/ladislav-zezula/StormLib)
+- [Material Design 3](https://m3.material.io/)
+
+## 📊 Statistics
+
+- **Lines of Code**: ~5,000+ (C++ + Kotlin)
+- **Supported Architectures**: 3 (armeabi-v7a, armeabi, x86)
+- **Minimum Android Version**: 5.0 (API 21)
+- **Target Android Version**: 13 (API 33)
+- **Dependencies**: 15+
+
+## 🎓 Learning Resources
+
+This project demonstrates:
+- Android NDK development
+- JNI integration
+- CMake build system
+- MVVM architecture
+- Coroutines for async operations
+- File I/O and binary parsing
+- Material Design implementation
+
+---
+
+**Made with ❤️ by Majers**
+
+If you find this project helpful, please consider giving it a ⭐ on GitHub!
